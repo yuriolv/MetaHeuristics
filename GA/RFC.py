@@ -1,5 +1,5 @@
 import random as rd
-import numpy as np
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -27,7 +27,7 @@ class GA:
                     individual.chromosome.append(rd.randint(1, 2))
 
     def chromosome_encoding(self, individual):
-        coded = individual.chromosome
+        coded = list(individual.chromosome)
 
         if(individual.chromosome[0] == 1):
             coded[0] = 'gini'
@@ -94,7 +94,7 @@ class GA:
     def update_population(self):
         new_pop = []
         for j in range(5):
-            index = rd.randint(1, 3)
+            index = rd.randint(1, 4)
             dad1, dad2 = self.tournament(), self.tournament()
 
             new_ind1, new_ind2 = self.crossover(dad1, dad2, index), self.crossover(dad2, dad1,index)
@@ -105,17 +105,19 @@ class GA:
 
     def mutation(self):
         for i in self.population:
-            for j in range(4):     
+            for j in range(5):     
                 probability = rd.randint(1,100)
                 if(probability <= self.mutation_rate):
                     if(j == 0):
                         i.chromosome[j] = rd.randint(1, 3)
                     elif(j == 1):
-                        i.chromosome[j] = rd.randint(3, 70)
+                        i.chromosome[j] = rd.randint(10, 100)
                     elif(j == 2):
-                        i.chromosome[j] = rd.randint(10, 70)
+                        i.chromosome[j] = rd.randint(3, 70)
                     elif(j == 3):
                         i.chromosome[j] = rd.randint(2, 70)
+                    elif(j == 4):
+                        i.chromosome[j] = rd.randint(1, 2)
 
     def show_population(self):
         print("\tAccuracy\t|\tChromosome\t")
