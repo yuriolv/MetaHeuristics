@@ -55,7 +55,7 @@ class GA:
         coded_chromosome = self.chromosome_encoding(individual)
         df = pd.read_csv('new_base.csv')
         y = df['RainTomorrow']
-        x = df.drop(columns=['RainTomorrow'])
+        x = df.drop(columns=['RainTomorrow'])   
 
         x_treino, x_teste, y_treino, y_teste = train_test_split(x, y, test_size=0.2, random_state=42)
         
