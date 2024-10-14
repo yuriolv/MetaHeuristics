@@ -1,5 +1,4 @@
 import random as rd
-from sklearn import ml
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -22,32 +21,13 @@ class GA:
         self.population = []
 
     def generate_chromosome(self, individual):
-        for j in range(6):
-                if(j == 0):#numero de camadas
-                    individual.chromosome.append(rd.randint(1, 10))
-                elif(j == 1):#numero de neuronios em cada camada
-                    individual.chromosome.append(np.randint(1,30, individual.chromosome[0]))
-                elif(j == 2):#função de ativação para cada camada
-                    individual.chromosome.append(np.randint(1, 3, individual.chromosome[0]))
-                elif(j == 3):#taxa de aprendizado
-                    float_dot = rd.choice([10,100,1000])
-                    individual.chromosome.append(1/float_dot)
-                elif(j == 4):#epocas
-                    individual.chromosome.append(rd.randint(1, 100))
-                elif(j == 5):#dropout
-                    individual.chromosome.append(rd.ramdom())
-
-    def chromosome_encoding(self, individual):
-        coded = list(individual.chromosome)
-        for i in range(len(coded[2])):
-            if(individual.chromosome[2, i] == 1):
-                coded[2, i] = 'relu'
-            elif(individual.chromosome[2, i] == 2):
-                coded[2, i] = 'sigmoid'
-            elif(individual.chromosome[2, i] == 3):
-                coded[2, i] = 'tanh'
-
-        return coded
+        individual.chromosome.append(rd.choice(['adam', 'sgd', 'rmsprop']))
+        individual.chromosome.append(round(rd.random(), 2))
+        multiples_of_2 = [i for i in range(2, 100 + 1) if i % 2 == 0]
+        layers_size = rd.choice(multiples_of_2)
+        for j in range(int(layers_size/2)):
+            individual.chromosome.append(rd.randint(1,30)) 
+            individual.chromosome.append(rd.choice(['relu', 'sigmoid', 'tanh']))
 
     def generate_population(self):
         for i in range(self.num_individuals):
@@ -58,32 +38,31 @@ class GA:
             self.population.append(i)
 
     def evaluate_individual(self, individual):
-        coded_chromosome = self.chromosome_encoding(individual)
-        df = pd.read_csv('../new_base.csv')
+        df = pd.read_csv('new_base.csv')
         y = df['RainTomorrow']
         x = df.drop(columns=['RainTomorrow']) 
 
         x_treino, x_teste, y_treino, y_teste = train_test_split(
-                                                                    x, y, test_size=0.2, 
-                                                                    random_state=42
+                                                                x, y, test_size=0.2, 
+                                                                random_state=42
                                                                     )
         y_treino = to_categorical(y_treino)
         y_teste = to_categorical(y_teste)
 
         model = Sequential() #número de camadas
         model.add(keras.Input(shape=(25,)))
-        for i in range(len(individual[0])):
-            model.add(Dense(individual[1, i]), activation=individual[2, i])
-            model.add(Dropout(individual[5]))
-
-        optmizer = Adam(learning_rate=individual[3])
+        for i in range(2, len(individual.chromosome)- 2):
+            if i % 2 == 0:
+                model.add(Dense(individual.chromosome[i], activation=individual.chromosome[i+1]))
+                model.add(Dropout(individual.chromosome[1]))
+        model.add(Dense(2, activation='softmax'))
 
         model.compile(
-                        optimizer='adam', loss='binary_crossentropy', 
-                        metrics=['accuracy'], verbose=1
+                        optimizer=individual.chromosome[0], loss='binary_crossentropy', 
+                        metrics=['accuracy']
                         )
 
-        model.fit(x_treino, y_treino, epochs=individual[4])
+        model.fit(x_treino, y_treino, epochs=100, verbose=1, batch_size=32)
 
         perca, acuracia = model.evaluate(x_teste, y_teste, verbose=0)
 
@@ -110,9 +89,9 @@ class GA:
 
     def update_population(self):
         new_pop = []
-        for j in range(5):
-            index = rd.randint(1, 5)
+        for j in range(len(self.population)/2):
             dad1, dad2 = self.tournament(), self.tournament()
+            index = rd.randint(1, min(len(dad1.chromosome), len(dad2.chromosome)))
 
             new_ind1, new_ind2 = self.crossover(dad1, dad2, index), self.crossover(dad2, dad1,index)
 
@@ -122,22 +101,17 @@ class GA:
 
     def mutation(self):
         for i in self.population:
-            for j in range(6):     
-                probability = rd.randint(1,100)
-                if(probability <= self.mutation_rate):
-                    if(j == 0):#numero de camadas
-                        i.chromosome.append(rd.randint(1, 10))
-                    elif(j == 1):#numero de neuronios em cada camada
-                        i.chromosome.append(np.randint(1,30, i.chromosome[0]))
-                    elif(j == 2):#função de ativação para cada camada
-                        i.chromosome.append(np.randint(1, 3, i.chromosome[0]))
-                    elif(j == 3):#taxa de aprendizado
-                        float_dot = rd.choice([10,100,1000])
-                        i.chromosome.append(1/float_dot)
-                    elif(j == 4):#epocas
-                        i.chromosome.append(rd.randint(1, 100))
-                    elif(j == 5):#dropout
-                        i.chromosome.append(rd.ramdom())
+            probability = rd.randint(1,100)
+            if(probability <= self.mutation_rate):
+                i.chromosome = []     
+                i.chromosome.append(rd.choice(['adam', 'sgd', 'rmsprop']))
+                i.chromosome.append(round(rd.random(), 2))
+
+                multiples_of_2 = [i for i in range(2, 100 + 1) if i % 2 == 0]
+                layers_size = rd.choice(multiples_of_2)
+                for j in range(int(layers_size/2)):
+                    i.chromosome.append(np.randint(1,30))
+                    i.chromosome.append(np.choice(['relu', 'sigmoid', 'tanh']))
 
     def show_population(self):
         print("\tAccuracy\t|\tChromosome\t")
